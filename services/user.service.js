@@ -22,15 +22,31 @@ class UserService {
 
   async updateProfile(userId, updateData) {
     try {
+      // Allowed fields to update (add more if needed)
+      const allowedFields = ['name', 'email', 'avatar', 'role'];
+      const filteredData = {};
+
+      // Filter only allowed fields from updateData
+      for (const key of allowedFields) {
+        if (updateData[key] !== undefined) {
+          filteredData[key] = updateData[key];
+        }
+      }
+
+      filteredData.updatedAt = Date.now();
+
       const updatedUser = await User.findByIdAndUpdate(
         userId,
-        { ...updateData, updatedAt: Date.now() },
+        filteredData,
         { new: true, runValidators: true }
-      ).select('-password').lean();
+      )
+      .select('-password')
+      .lean();
 
       if (!updatedUser) {
         throw createHttpError(404, 'User not found');
       }
+
       logger.info(`Updated profile for user: ${userId}`);
       return updatedUser;
     } catch (error) {
@@ -50,6 +66,7 @@ class UserService {
       if (!result) {
         throw createHttpError(404, 'User not found');
       }
+
       logger.info(`User account and all associated data deleted: ${userId}`);
       return { message: 'Account and all associated data deleted successfully' };
     } catch (error) {
